@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="icons/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #dbeafe, #fef3c7);
+            margin: 0;
+            padding: 20px;
+            color: #1e293b;
+        }
+
+        h1 {
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+
+        input[type="text"] {
+            width: 24rem;
+        }
+
+        button,
+        textarea,
+        select,
+        input[type="date"],
+        input[type="time"],
+        input[type="text"] {
+            padding: 10px 14px;
+            margin: 0 8px 12px 8px;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: 1.8px solid #cbd5e1;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            outline: none;
+        }
+
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
+            user-select: none;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background-color: #e0e0e0;
+            color: #444;
+            box-shadow: none;
+        }
+
+        button.secondary:hover {
+            background-color: #b8b8b8;
+        }
+
+        textarea {
+            padding: 6px;
+        }
+
+
+        textarea:hover,
+        select:hover,
+        input[type=date]:hover,
+        input[type=time]:hover,
+        input[type=text]:hover {
+            border-color: #2563eb;
+            box-shadow: 0 0 6px #2563eb;
+        }
+
+        table {
+            width: 95%;
+            margin: 0 auto;
+            border-collapse: collapse;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+            background: white;
+        }
+
+        th,
+        td {
+            padding: 14px 20px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+        }
+
+        th {
+            background: #2563eb;
+            color: white;
+            font-weight: 600;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f3f4f6;
+        }
+
+        tbody tr:hover {
+            background: #dbeafe;
+        }
+
+        .status-cell {
+            padding: 8px 12px;
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .status-completed {
+            color: #22c55e;
+        }
+
+        .status-inprogress {
+            color: #eab308;
+        }
+
+        .status-pending {
+            color: #40c2e6;
+        }
+
+        .status-blocked {
+            color: #ef4444;
+        }
+
+        #popupOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(3px);
+            opacity: 0;
+            visibility: hidden;
+            z-index: 999;
+            transition: opacity 0.3s ease;
+        }
+
+        #popupOverlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #taskForm {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 420px;
+            max-width: 90vw;
+            background: white;
+            border-radius: 14px;
+            padding: 24px 32px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            transform: translate(-50%, -50%) scale(0.8);
+            opacity: 0;
+            visibility: hidden;
+            z-index: 1000;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        #taskForm.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        #taskForm h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: #1e293b;
+            text-align: center;
+        }
+
+        .form-row {
+            margin-bottom: 16px;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 16px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Taskify</h1>
+
+    <div class="controls">
+        <button onclick="openForm()"><i class="fa-solid fa-plus"></i> New Task</button>
+        <button id="exportBtn"><i class="fa-solid fa-file-export"></i> Export to Excel</button>
+
+        <select id="filterSelect" onchange="filterChange()">
+            <option value="today">Today</option>
+            <option value="tomorrow">Tomorrow</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+            <option value="custom">Custom Range</option>
+        </select>
+        <input type="date" id="fromDate" style="display:none" />
+        <input type="date" id="toDate" style="display:none" />
+        <button id="filterBtn" style="display:none">Filter</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>S.No</th>
+                <th>Client</th>
+                <th>Project</th>
+                <th>Date</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Duration</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="taskBody"></tbody>
+    </table>
+
+    <div id="popupOverlay"></div>
+    <div id="taskForm"></div>
+
+    <script>
+        const popupOverlay = document.getElementById('popupOverlay');
+        const taskForm = document.getElementById('taskForm');
+        const filterSelect = document.getElementById('filterSelect');
+        const fromDate = document.getElementById('fromDate');
+        const toDate = document.getElementById('toDate');
+        const filterBtn = document.getElementById('filterBtn');
+        const exportBtn = document.getElementById('exportBtn');
+
+        let currentFilter = { mode: 'today', from: '', to: '' };
+        let editing = null;
+
+        function escapeHtml(str) { return !str && str !== 0 ? '' : String(str).replace(/[&<>\"']/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;', "'": '&#39;' })[s]); }
+        function getStatusClass(status) {
+            switch (status.toLowerCase()) {
+                case 'completed': return 'status-completed';
+                case 'inprogress': return 'status-inprogress';
+                case 'pending': return 'status-pending';
+                case 'blocked': return 'status-blocked';
+                default: return '';
+            }
+        }
+
+        function filterChange() {
+            const sel = filterSelect.value;
+            if (sel === 'custom') {
+                fromDate.style.display = 'inline-block';
+                toDate.style.display = 'inline-block';
+                filterBtn.style.display = 'inline-block';
+            } else {
+                fromDate.style.display = 'none';
+                toDate.style.display = 'none';
+                filterBtn.style.display = 'none';
+                currentFilter = { mode: sel, from: '', to: '' };
+                applyFilter();
+            }
+        }
+
+        filterSelect.addEventListener('change', filterChange);
+        filterBtn.addEventListener('click', applyFilter);
+        exportBtn.addEventListener('click', exportTasks);
+
+        async function applyFilter(forceDate = null) {
+            let sel = filterSelect.value;
+            let from = '', to = '';
+            if (sel === 'custom') {
+                from = fromDate.value;
+                to = toDate.value;
+                if (!from || !to) return alert('Select both From and To dates');
+            }
+
+            if (forceDate) {
+                sel = 'custom';
+                from = forceDate;
+                to = forceDate;
+                filterSelect.value = 'custom';
+                fromDate.value = forceDate;
+                toDate.value = forceDate;
+                fromDate.style.display = 'inline-block';
+                toDate.style.display = 'inline-block';
+                filterBtn.style.display = 'inline-block';
+            }
+
+            currentFilter = { mode: sel, from, to };
+            const params = new URLSearchParams(currentFilter);
+            const res = await fetch('/api/filter?' + params.toString());
+            const tasks = await res.json();
+
+            const tbody = document.getElementById('taskBody');
+            tbody.innerHTML = '';
+
+            tasks.forEach((t, i) => {
+                let duration = '';
+                if (t.startTime && t.endTime) {
+                    const st = t.startTime.split(':');
+                    const et = t.endTime.split(':');
+                    if (st.length === 2 && et.length === 2) {
+                        const start = new Date(1970, 0, 1, parseInt(st[0]), parseInt(st[1]));
+                        const end = new Date(1970, 0, 1, parseInt(et[0]), parseInt(et[1]));
+                        if (end > start) {
+                            let diff = (end.getTime() - start.getTime()) / 60000;
+                            let h = Math.floor(diff / 60);
+                            let m = Math.floor(diff % 60);
+                            duration = h > 0 ? `${h}h ${m}m` : `${m}m`;
+                            console.log(h, "and", m);
+
+
+                        }
+                    }
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+        <td>${escapeHtml(i + 1)}</td>
+        <td>${escapeHtml(t.clientName)}</td>
+        <td>${escapeHtml(t.projectName)}</td>
+        <td>${escapeHtml(t.date)}</td>
+        <td>${escapeHtml(t.startTime)}</td>
+        <td>${escapeHtml(t.endTime)}</td>
+        <td>${escapeHtml(duration == "" ? "0m" : duration)}</td>
+        <td>${escapeHtml(t.description)}</td>
+        <td class="status-cell ${getStatusClass(t.status)}">${escapeHtml(t.status)}</td>
+        <td>
+          <button style="background:#3f7ab2; color:#fff; border:none; padding:6px 10px; border-radius:5px; margin-right:6px;"
+          onclick="editTask('${t.date}',${t.id})"><i class="fa-solid fa-pen-to-square"></i></button>
+          <button style="background:#f45454; color:#fff; border:none; padding:6px 10px; border-radius:5px;"
+          onclick="deleteTask('${t.date}',${t.id})"><i class="fa-solid fa-trash"></i></button>
+        </td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openForm(task = null) {
+            editing = task;
+            taskForm.innerHTML = `
+      <h3>${task ? 'Edit Task' : 'Create Task'}</h3>
+      <div class="form-row"><input type="text" id="clientName" placeholder="Client Name" /></div>
+      <div class="form-row"><input type="text" id="projectName" placeholder="Project Name" /></div>
+      <div class="form-row"><input type="date" id="taskDate" style="width:24rem;" /></div>
+        <div class="form-row">
+        <select id="status" style="width:26rem;">
+          <option value="pending">Pending</option>
+          <option value="inprogress">In Progress</option>
+          <option value="completed">Completed</option>
+          <option value="blocked">Blocked</option>
+        </select>
+      </div>
+      <div class="form-row" style="display:flex; gap:110px;">
+        <input type="time" id="startTime" placeholder="Start Time" />
+        <input type="time" id="endTime" placeholder="End Time" />
+      </div>
+      <div class="form-row"><textarea  id="description" placeholder="Task Description" rows="4" cols="40"></textarea></div>
+    
+      <div class="actions">
+        <button class="btn save" onclick="saveTask()">Save</button>
+        <button class="btn secondary" onclick="closeForm()">Cancel</button>
+      </div>
+    `;
+            if (task) {
+                document.getElementById('clientName').value = task.clientName;
+                document.getElementById('projectName').value = task.projectName;
+                document.getElementById('taskDate').value = task.date;
+                document.getElementById('startTime').value = task.startTime;
+                document.getElementById('endTime').value = task.endTime;
+                document.getElementById('description').value = task.description;
+                document.getElementById('status').value = task.status;
+            } else {
+                const today = new Date().toISOString().substr(0, 10);
+                document.getElementById('taskDate').value = today;
+            }
+            popupOverlay.classList.add('show');
+            taskForm.classList.add('show');
+        }
+
+        function closeForm() {
+            popupOverlay.classList.remove('show');
+            taskForm.classList.remove('show');
+            editing = null;
+        }
+
+        popupOverlay.addEventListener('click', closeForm);
+
+        async function saveTask() {
+            const clientName = document.getElementById('clientName').value.trim();
+            const projectName = document.getElementById('projectName').value.trim();
+            const date = document.getElementById('taskDate').value;
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            const description = document.getElementById('description').value.trim();
+            const status = document.getElementById('status').value;
+
+            if (!clientName || !projectName || !date) return alert('Client, Project, and Date are required.');
+
+            const payload = { clientName, projectName, date, startTime, endTime, description, status };
+
+            if (editing) {
+                await fetch(`/api/tasks/${editing.date}/${editing.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } else {
+                await fetch('/api/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            }
+            closeForm();
+            await applyFilter(date);
+        }
+
+        async function editTask(date, id) {
+            const res = await fetch(`/api/tasks/${date}`);
+            const tasks = await res.json();
+            const task = tasks.find(t => t.id == id);
+            if (task) openForm(task);
+        }
+
+        async function deleteTask(date, id) {
+            if (!confirm('Are you sure you want to delete this task?')) return;
+            await fetch(`/api/tasks/${date}/${id}`, { method: 'DELETE' });
+            applyFilter();
+        }
+
+        async function exportTasks() {
+            const params = new URLSearchParams(currentFilter);
+            const res = await fetch('/api/export-range?' + params.toString());
+            if (!res.ok) {
+                alert('Export failed');
+                return;
+            }
+            const str = res.headers.get("Content-Disposition")
+            const fileName = str.split('filename="')[1].split('"')[0];
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        }
+
+        applyFilter(); // initial task loading
+    </script>
+</body>
+
+</html>
