@@ -12,7 +12,7 @@ app.use(morgan('dev'));
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const dbDir = path.join(os.homedir(), 'Documents', 'task_db');
+const dbDir = path.join(os.homedir(), 'Documents', 'Taskify_DB');
 if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
 function getFileName(dateStr) { return path.join(dbDir, `${dateStr}.json`); }
@@ -106,11 +106,10 @@ app.get('/api/filter', (req, res) => {
       include = fileDate.toDateString() === t.toDateString();
     }
     else if (mode === 'week') {
-      const start = new Date(now);
-      start.setDate(now.getDate() - now.getDay());
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      include = fileDate >= start && fileDate <= end;
+    const end = new Date(); // now
+    const start = new Date();
+    start.setDate(end.getDate() - 6); 
+    include = fileDate >= start && fileDate <= end;  
     }
     else if (mode === 'month') include = fileDate.getMonth() === now.getMonth() && fileDate.getFullYear() === now.getFullYear();
     else if (mode === 'custom') {
@@ -148,11 +147,10 @@ app.get('/api/export-range', async (req, res) => {
       include = fileDate.toDateString() === t.toDateString();
     }
     else if (mode === 'week') {
-      const start = new Date(now);
-      start.setDate(now.getDate() - now.getDay());
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      include = fileDate >= start && fileDate <= end;
+    const end = new Date(); // now
+    const start = new Date();
+    start.setDate(end.getDate() - 6); 
+    include = fileDate >= start && fileDate <= end; 
     }
     else if (mode === 'month') include = fileDate.getMonth() === now.getMonth() && fileDate.getFullYear() === now.getFullYear();
     else if (mode === 'custom') {
@@ -190,9 +188,7 @@ app.get('/api/export-range', async (req, res) => {
       duration = h > 0 ? `${h}h ${m}m` : `${m}m`;
     }
     t.duration = duration === '' ? '0m' : duration;
-
     const row = ws.addRow(t);
-
     let fillColor;
     switch ((t.status || '').toLowerCase()) {
       case 'completed': fillColor = 'FF2ECC71'; break;
@@ -201,18 +197,14 @@ app.get('/api/export-range', async (req, res) => {
       case 'blocked': fillColor = 'FFE74C3C'; break;
       default: fillColor = null;
     }
-
     if (fillColor) {
       row.getCell('status').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
     }
   });
-
   const dd = String(now.getDate()).padStart(2, '0');
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const yyyy = now.getFullYear();
   const fileName = `${userName}_${dd}_${mm}_${yyyy}.xlsx`;
-  console.log(fileName);
-
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
   await workbook.xlsx.write(res);

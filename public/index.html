@@ -299,11 +299,11 @@
 
             if (forceDate) {
                 sel = 'custom';
-                from = forceDate;
-                to = forceDate;
+                // from = forceDate;
+                // to = forceDate;
                 filterSelect.value = 'custom';
-                fromDate.value = forceDate;
-                toDate.value = forceDate;
+                // fromDate.value = forceDate;
+                // toDate.value = forceDate;
                 fromDate.style.display = 'inline-block';
                 toDate.style.display = 'inline-block';
                 filterBtn.style.display = 'inline-block';
@@ -316,7 +316,12 @@
 
             const tbody = document.getElementById('taskBody');
             tbody.innerHTML = '';
-
+if (tasks.length === 0) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="10"><div style="text-align:center; font-size:18px; align-content:center;height:40vh;padding: 20px; color: #6b7280;font-weight:600">No data found</div></td>`;
+    tbody.appendChild(tr);
+    return;
+}
             tasks.forEach((t, i) => {
                 let duration = '';
                 if (t.startTime && t.endTime) {
@@ -330,13 +335,9 @@
                             let h = Math.floor(diff / 60);
                             let m = Math.floor(diff % 60);
                             duration = h > 0 ? `${h}h ${m}m` : `${m}m`;
-                            console.log(h, "and", m);
-
-
                         }
                     }
                 }
-
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
         <td>${escapeHtml(i + 1)}</td>
@@ -377,7 +378,7 @@
         <input type="time" id="startTime" placeholder="Start Time" />
         <input type="time" id="endTime" placeholder="End Time" />
       </div>
-      <div class="form-row"><textarea  id="description" placeholder="Task Description" rows="4" cols="40"></textarea></div>
+      <div class="form-row"><textarea  id="description" placeholder="Task Description" rows="4" cols="45"></textarea></div>
     
       <div class="actions">
         <button class="btn save" onclick="saveTask()">Save</button>
